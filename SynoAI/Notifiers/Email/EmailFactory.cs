@@ -9,7 +9,7 @@ namespace SynoAI.Notifiers.Email
             using (logger.BeginScope(nameof(EmailFactory)))
             {
                 logger.LogInformation("Processing Email Config");
-                
+
                 SecureSocketOptions socketOptions = GetSecureSocketOptions(logger, section);
                 string sender = section.GetValue<string>("Sender");
                 string destination = section.GetValue<string>("Destination");
@@ -51,7 +51,8 @@ namespace SynoAI.Notifiers.Email
                 case "STARTTLSWHENAVAILABLE":
                     return SecureSocketOptions.StartTlsWhenAvailable;
                 default:
-                    logger.LogError($"The email encryption type '{options}' is not supported.", options);
+                    logger.LogError("The email encryption type '{options}' is not supported."
+                        , options);
                     throw new NotSupportedException($"The email SecureSocketOptions type '{options}' is not supported.");
             }
         }

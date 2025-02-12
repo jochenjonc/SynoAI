@@ -1,5 +1,5 @@
 ﻿using SynoAI.AIs;
-using SynoAI.AIs.DeepStack;
+using SynoAI.AIs.AIProcessor;
 using SynoAI.Models;
 
 namespace SynoAI.Services
@@ -21,14 +21,11 @@ namespace SynoAI.Services
 
         private static AI GetAI()
         {
-            switch (Config.AI)
+            return Config.AI switch
             {
-                case AIType.DeepStack:
-                case AIType.CodeProjectAIServer: // Works the same as DeepStack
-                    return new DeepStackAI();
-                default:
-                    throw new NotImplementedException(Config.AI.ToString());
-            }
+                AIType.DeepStack or AIType.CodeProjectAIServer => new AIProcessorAI(),
+                _ => throw new NotImplementedException(Config.AI.ToString()),
+            };
         }
     }
 }

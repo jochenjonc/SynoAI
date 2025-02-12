@@ -1,6 +1,5 @@
-﻿using SynoAI.Models;
-using MQTTnet.Client;
-using MQTTnet;
+﻿using MQTTnet;
+using SynoAI.Models;
 
 namespace SynoAI.Notifiers.Mqtt
 {
@@ -39,7 +38,7 @@ namespace SynoAI.Notifiers.Mqtt
 
         public Mqtt() : base()
         {
-            _client = (new MQTTnet.MqttFactory()).CreateMqttClient();
+            _client = (new MQTTnet.MqttClientFactory()).CreateMqttClient();
         }
 
         public override Task InitializeAsync(ILogger logger)
@@ -60,7 +59,7 @@ namespace SynoAI.Notifiers.Mqtt
             MqttApplicationMessageBuilder messageBuilder = new MqttApplicationMessageBuilder()
                 .WithTopic($"{BaseTopic}/{camera.Name}/notification")
                 .WithPayload(GenerateJSON(camera, notification, SendImage));
-            
+
             await _client.PublishAsync(messageBuilder.Build());
         }
 
@@ -85,7 +84,7 @@ namespace SynoAI.Notifiers.Mqtt
 
             var mqttClientOptionsBuilder = new MqttClientOptionsBuilder()
                 .WithTcpServer(Host, Port);
-            
+
             if (Username != null)
             {
                 mqttClientOptionsBuilder.WithCredentials(Username, Password ?? "");
@@ -93,10 +92,8 @@ namespace SynoAI.Notifiers.Mqtt
 
             try
             {
-                using (var timeoutToken = new CancellationTokenSource(TimeSpan.FromSeconds(_connectionTimeoutSeconds)))
-                {
-                    await _client.ConnectAsync(mqttClientOptionsBuilder.Build(), timeoutToken.Token);
-                }
+                using var timeoutToken = new CancellationTokenSource(TimeSpan.FromSeconds(_connectionTimeoutSeconds));
+                await _client.ConnectAsync(mqttClientOptionsBuilder.Build(), timeoutToken.Token);
             }
             catch (Exception ex)
             {

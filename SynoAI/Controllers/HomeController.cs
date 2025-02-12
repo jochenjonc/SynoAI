@@ -6,6 +6,9 @@ using System.Drawing.Imaging;
 
 namespace SynoAI.Controllers
 {
+    /// <summary>
+    /// Controller for handling home-related HTTP requests.
+    /// </summary>
     public class HomeController : Controller
     {
         static readonly string[] byteSizes = { "bytes", "Kb", "Mb", "Gb", "Tb" };
@@ -51,15 +54,15 @@ namespace SynoAI.Controllers
         /// Called by the user from web browser - Zoom into a minute of snapshots and show it's snapshots
         /// </summary>
         [Route("{cameraname}/{year}/{month}/{day}/{hour}/{minute}")]
-        public IActionResult Minute(string cameraname, string year, string month, string day, string hour,string minute)
+        public IActionResult Minute(string cameraname, string year, string month, string day, string hour, string minute)
         {
             ViewData["camera"] = cameraname;
-  
-            try 
+
+            try
             {
-                ViewData["date"] = new DateTime(Int16.Parse(year),Int16.Parse(month),Int16.Parse(day),Int16.Parse(hour),Int16.Parse(minute),59,999);
+                ViewData["date"] = new DateTime(Int16.Parse(year), Int16.Parse(month), Int16.Parse(day), Int16.Parse(hour), Int16.Parse(minute), 59, 999);
             }
-            catch (Exception) 
+            catch (Exception)
             {
                 ViewData["date"] = DateTime.Now;
             }
@@ -67,68 +70,68 @@ namespace SynoAI.Controllers
         }
 
 
-        /// <summary>
-        /// Return snapshot image as JPEG, either in original size or a scaled down version, if asked.
-        /// In order to use System.Drawing.Common
-        /// In Terminal, issue: dotnet add SynoAI package System.Drawing.Common
-        /// </summary>
-        [Route("{cameraName}/{filename}/{width}")]
-        [Route("{cameraName}/{filename}")]
-        public ActionResult Snapshot(string cameraName, string filename, int width = 0)
-        {   
-            // Reconstruct the path to the actual snapshot inside the NAS 
-            string path = Path.Combine(Constants.DIRECTORY_CAPTURES, cameraName);
-            path = Path.Combine(path, filename);
+        ///// <summary>
+        ///// Return snapshot image as JPEG, either in original size or a scaled down version, if asked.
+        ///// In order to use System.Drawing.Common
+        ///// In Terminal, issue: dotnet add SynoAI package System.Drawing.Common
+        ///// </summary>
+        //[Route("{cameraName}/{filename}/{width}")]
+        //[Route("{cameraName}/{filename}")]
+        //public ActionResult Snapshot(string cameraName, string filename, int width = 0)
+        //{
+        //    // Reconstruct the path to the actual snapshot inside the NAS 
+        //    string path = Path.Combine(Constants.DIRECTORY_CAPTURES, cameraName);
+        //    path = Path.Combine(path, filename);
 
-            // Grab the original Snapshot
-            byte[] originalSnapshot = System.IO.File.ReadAllBytes(path);
+        //    // Grab the original Snapshot
+        //    byte[] originalSnapshot = System.IO.File.ReadAllBytes(path);
 
-            if (width != 0) 
-            {
-                // New (reduced) width specified: Scale down the original snapshot
+        //    if (width != 0)
+        //    {
+        //        // New (reduced) width specified: Scale down the original snapshot
 
-                // First retrieve the original Snapshot
-                using var memoryStream = new MemoryStream(originalSnapshot);
+        //        // First retrieve the original Snapshot
+        //        using var memoryStream = new MemoryStream(originalSnapshot);
 
-                // Second, convert it into a bitmap for resizing
-                using var originalImage = new Bitmap(memoryStream);
+        //        // Second, convert it into a bitmap for resizing
+        //        using var originalImage = new Bitmap(memoryStream);
 
-                //Get image ratio from original bitmap width and Height: 
-                double ratio = (double)originalImage.Width / (double)originalImage.Height;   
+        //        //Get image ratio from original bitmap width and Height: 
+        //        double ratio = (double)originalImage.Width / (double)originalImage.Height;
 
-                // Calculate new height based on that ratio and the new reduced width.
-                ratio = width / ratio;
-                int height = (int)Math.Floor(ratio);
+        //        // Calculate new height based on that ratio and the new reduced width.
+        //        ratio = width / ratio;
+        //        int height = (int)Math.Floor(ratio);
 
-                //Create a resized bitmap image
-                var resized = new Bitmap(width, height);
-                using var graphics = Graphics.FromImage(resized);
-                graphics.CompositingQuality = CompositingQuality.HighSpeed;
-                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                graphics.CompositingMode = CompositingMode.SourceCopy;
+        //        //Create a resized bitmap image
+        //        var resized = new Bitmap(width, height);
+        //        using var graphics = Graphics.FromImage(resized);
+        //        graphics.CompositingQuality = CompositingQuality.HighSpeed;
+        //        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        //        graphics.CompositingMode = CompositingMode.SourceCopy;
 
-                graphics.DrawImage(originalImage, 0, 0, width, height);
+        //        graphics.DrawImage(originalImage, 0, 0, width, height);
 
-                //Convert resized image into jpeg and return
-                using var stream = new MemoryStream(); 
-                resized.Save(stream, ImageFormat.Jpeg);
-                return File(stream.ToArray(), "image/jpeg");
-            }
-            else 
-            {
-                // Width 0 means full-size, just return the original fetched image.
-                return File(originalSnapshot, "image/jpeg");
-            }
-        }
+        //        //Convert resized image into jpeg and return
+        //        using var stream = new MemoryStream();
+        //        resized.Save(stream, ImageFormat.Jpeg);
+        //        return File(stream.ToArray(), "image/jpeg");
+        //    }
+        //    else
+        //    {
+        //        // Width 0 means full-size, just return the original fetched image.
+        //        return File(originalSnapshot, "image/jpeg");
+        //    }
+        //}
 
 
         /// <summary>
         /// Analyzes snapshots saved into a given camera folder, either for 24 hours, or for a specific hour
         ///  (used for graphing in Index.cshtml and Camera.cshtml)
         /// </summary>
-        public static GraphData GetData(string cameraName, DateTime date, bool GraphHour = false) 
-        {  
-            GraphData data = new GraphData();
+        public static GraphData GetData(string cameraName, DateTime date, bool GraphHour = false)
+        {
+            GraphData data = new();
             string directory = Path.Combine(Constants.DIRECTORY_CAPTURES, cameraName);
 
             if (Directory.Exists(directory))
@@ -145,13 +148,13 @@ namespace SynoAI.Controllers
                 if (!GraphHour)
                     data.Snapshots = snapshots.Length;
 
-                foreach (FileInfo snapshot in snapshots) 
+                foreach (FileInfo snapshot in snapshots)
                 {
-                    if (!GraphHour)                         
+                    if (!GraphHour)
                         data.Storage += snapshot.Length;   // Add file size to global storage usage counter
 
                     //Start working from given date
-                    if (snapshot.CreationTime <= date) 
+                    if (snapshot.CreationTime <= date)
                     {
                         // Graphing minutes inside an hour
                         if (GraphHour)
@@ -180,11 +183,12 @@ namespace SynoAI.Controllers
                         else
                         {
                             //Graphing a 24 hours timespan, new hour:                      
-                            if ((oldDate.Hour != snapshot.CreationTime.Hour || oldDate == DateTime.MinValue)) 
+                            if ((oldDate.Hour != snapshot.CreationTime.Hour || oldDate == DateTime.MinValue))
                             {
                                 //An hour of snapshots just passed thru: Add it to the graph!
-                                if (data.HoursCounter <= 24  && oldDate != DateTime.MinValue) {
-                                    data = AddGraphPoint(data,oldDate, objectsCounter, predictionsCounter);
+                                if (data.HoursCounter <= 24 && oldDate != DateTime.MinValue)
+                                {
+                                    data = AddGraphPoint(data, oldDate, objectsCounter, predictionsCounter);
                                     objectsCounter = 0;
                                     predictionsCounter = 0;
                                 }
@@ -192,12 +196,12 @@ namespace SynoAI.Controllers
                             }
 
                             // If inside 24 hours graph window, update counters
-                            if (data.HoursCounter <=24) 
+                            if (data.HoursCounter <= 24)
                             {
                                 predictionsCounter++;
                                 objectsCounter += GetObjects(snapshot.Name);
                             }
-                        }                    
+                        }
 
                         //Move forward into next snapshot...
                         oldDate = snapshot.CreationTime;
@@ -206,7 +210,7 @@ namespace SynoAI.Controllers
 
                 // Are there any remaining predictions left, either inside the last "remaining" hour or minute  ?
                 if (predictionsCounter > 0)
-                    data = AddGraphPoint(data,oldDate, objectsCounter, predictionsCounter);       
+                    data = AddGraphPoint(data, oldDate, objectsCounter, predictionsCounter);
             }
             return data;
         }
@@ -216,9 +220,9 @@ namespace SynoAI.Controllers
         /// Analyzes snapshots saved into a given camera folder, for a specific minute
         /// (used for grabbing the snapshots in Gallery.cshtml)
         /// </summary>
-        public static List<String> GetSnapshots(string cameraName, DateTime date) 
+        public static List<String> GetSnapshots(string cameraName, DateTime date)
         {
-            List<String> files = new List<String>();
+            List<String> files = new();
             string directory = Path.Combine(Constants.DIRECTORY_CAPTURES, cameraName);
 
             if (Directory.Exists(directory))
@@ -227,10 +231,10 @@ namespace SynoAI.Controllers
                 var dir = new DirectoryInfo(directory);
                 FileInfo[] snapshots = dir.GetFiles().OrderByDescending(p => p.CreationTime).ToArray();
 
-                foreach (FileInfo snapshot in snapshots) 
+                foreach (FileInfo snapshot in snapshots)
                 {
                     //Start working from given date
-                    if (snapshot.CreationTime <= date) 
+                    if (snapshot.CreationTime <= date)
                     {
                         if (snapshot.CreationTime.Minute != date.Minute) break; //We are not inside the current minute, any more.
                         files.Add(snapshot.Name); //Store the snapshot filename.
@@ -247,9 +251,9 @@ namespace SynoAI.Controllers
         /// </summary>
         private static int GetObjects(string filename)
         {
-            int objects = 0;
             string name = Path.GetFileNameWithoutExtension(filename);
             int index = name.IndexOf("-");
+            int objects;
             if (index != -1)
             {
                 //try to extract the number of valid objects predicted inside this snapshot
@@ -267,20 +271,20 @@ namespace SynoAI.Controllers
         /// <summary>
         /// Adds a Graph Point value into the Graph data and updates max y-axis value
         /// </summary>
-        private static GraphData AddGraphPoint(GraphData data, DateTime date, int objects, int predictions) 
+        private static GraphData AddGraphPoint(GraphData data, DateTime date, int objects, int predictions)
         {
             // Store past hour values
-            data.GraphPoints.Add( new GraphPoint() { Date = date, Objects = objects, Predictions = predictions });
+            data.GraphPoints.Add(new GraphPoint() { Date = date, Objects = objects, Predictions = predictions });
 
             //Adjust Max value for Y axis
-            if ( objects  > data.yMax)
+            if (objects > data.YMax)
             {
-               data.yMax = objects ;
-            } 
-            else if ( predictions  > data.yMax)
+                data.YMax = objects;
+            }
+            else if (predictions > data.YMax)
             {
-                data.yMax = predictions;
-            } 
+                data.YMax = predictions;
+            }
             return data;
         }
 
@@ -290,7 +294,8 @@ namespace SynoAI.Controllers
         /// </summary>
         public static string NiceByteSize(long numberOfBytes)
         {
-            if (numberOfBytes > 0) {
+            if (numberOfBytes > 0)
+            {
                 int i = 0;
                 decimal dValue = (decimal)numberOfBytes;
                 while (Math.Round(dValue, 1) >= 1000)
@@ -301,25 +306,25 @@ namespace SynoAI.Controllers
                 return string.Format("{0:n1} {1}", dValue, byteSizes[i]);
             }
             return "---";
-        }       
+        }
 
 
         /// <summary>
         /// Returns string including all objects types configured for valid detection inside the given camera
         /// </summary>
-        public static string GetTypes(Camera camera) 
+        public static string GetTypes(Camera camera)
         {
-            if (!camera.Types.Any()) 
+            if (!camera.Types.Any())
             {
-                 return "Any";
+                return "Any";
             }
             else
             {
                 string items = string.Empty;
                 foreach (string item in camera.Types)
                 {
-                    items+= item + " ";
-                    
+                    items += item + " ";
+
                 }
                 return items;
             }

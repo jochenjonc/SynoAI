@@ -25,17 +25,17 @@ namespace SynoAI
         /// <summary>
         /// Allow insecure URL Access to the Synology API.
         /// </summary>
-        public static bool AllowInsecureUrl {get;private set;}
+        public static bool AllowInsecureUrl { get; private set; }
 
         /// <summary>
         /// The version of the SYNO.API.Auth API to use.
         /// </summary>
-        public static int ApiVersionAuth {get;private set;}
+        public static int ApiVersionAuth { get; private set; }
         /// <summary>
         /// The version of the SYNO.SurveillanceStation.Camera API to use.
         /// </summary>
-        public static int ApiVersionCamera {get;private set;}
-        
+        public static int ApiVersionCamera { get; private set; }
+
         /// <summary>
         /// Sets the profile type, aka Quality, of the image taken by the camera. 
         /// 0 = High Quality
@@ -84,15 +84,15 @@ namespace SynoAI
         /// <summary>
         /// True will only place a reference number on each label image, later detailing object type and confidence percentage on the notification text
         /// </summary>
-        public static bool AlternativeLabelling { get; private set; } 
+        public static bool AlternativeLabelling { get; private set; }
         /// <summary>
         /// True will place each image label below the boundary box.
         /// </summary>
-        public static bool LabelBelowBox { get; private set; } 
+        public static bool LabelBelowBox { get; private set; }
         /// <summary>
         /// Upon movement, the maximum number of snapshots sequentially retrieved from SSS until finding an object of interest (i.e. 4 snapshots)
         /// </summary>
-        public static int MaxSnapshots { get; private set; } 
+        public static int MaxSnapshots { get; private set; }
         /// <summary>
         /// Whether this original snapshot generated from the API should be saved to the file system.
         /// </summary>
@@ -154,11 +154,11 @@ namespace SynoAI
         ///  - Only draw around predictions that exist in the camera's types list
         ///  - Or draw nothing.
         /// </summary>
-        public static DrawMode DrawMode {get; private set; }
+        public static DrawMode DrawMode { get; private set; }
         /// <summary>
         /// Whether the draw the exclusion zone boxes on images. Useful for testing box locations.
         /// </summary>
-        public static bool DrawExclusions {get; private set; }
+        public static bool DrawExclusions { get; private set; }
 
         /// <summary>
         /// The list of possible notifiers.
@@ -180,7 +180,7 @@ namespace SynoAI
             logger.LogInformation("Processing config.");
 
             Url = configuration.GetValue<string>("Url");
-            
+
             Username = configuration.GetValue<string>("User");  // "Username" returns the local system account when debugging, which isn't ideal. Need to resolve this.
             Password = configuration.GetValue<string>("Password");
             AllowInsecureUrl = configuration.GetValue<bool>("AllowInsecureUrl", false);
@@ -189,7 +189,7 @@ namespace SynoAI
             ApiVersionCamera = configuration.GetValue<int>("ApiVersionCamera", 9);  // Surveillance Station 8.0
 
             Quality = configuration.GetValue<CameraQuality>("Quality", CameraQuality.Balanced);
-            
+
             DrawMode = configuration.GetValue<DrawMode>("DrawMode", DrawMode.Matches);
             DrawExclusions = configuration.GetValue<bool>("DrawExclusions", false);
 
@@ -202,7 +202,7 @@ namespace SynoAI
 
             Font = configuration.GetValue<string>("Font", "Tahoma");
             FontSize = configuration.GetValue<int>("FontSize", 12);
-            
+
             TextOffsetX = configuration.GetValue<int>("TextOffsetX", 4);
             TextOffsetY = configuration.GetValue<int>("TextOffsetY", 2);
 
@@ -226,9 +226,9 @@ namespace SynoAI
             DaysToKeepCaptures = configuration.GetValue<int>("DaysToKeepCaptures", 0);
 
             IConfigurationSection aiSection = configuration.GetSection("AI");
-            AI = aiSection.GetValue<AIType>("Type", AIType.DeepStack);
+            AI = aiSection.GetValue<AIType>("Type", AIType.CodeProjectAIServer);
             AIUrl = aiSection.GetValue<string>("Url");
-            AIPath = aiSection.GetValue<string>("Path","v1/vision/detection");
+            AIPath = aiSection.GetValue<string>("Path", "v1/vision/detection");
 
             SynoAIUrL = configuration.GetValue<string>("SynoAIUrl");
 
@@ -248,7 +248,7 @@ namespace SynoAI
         {
             logger.LogInformation("Processing notifier config.");
 
-            List<INotifier> notifiers = new List<INotifier>();
+            List<INotifier> notifiers = new();
 
             IConfigurationSection section = configuration.GetSection("Notifiers");
             foreach (IConfigurationSection child in section.GetChildren())
@@ -257,7 +257,8 @@ namespace SynoAI
 
                 if (!Enum.TryParse(type, out NotifierType notifier))
                 {
-                    logger.LogError($"Notifier Type '{ type }' is not supported.");
+                    logger.LogError("Notifier Type '{ type }' is not supported.",
+                        type);
                     throw new NotImplementedException(type);
                 }
 

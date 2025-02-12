@@ -16,7 +16,9 @@ namespace SynoAI.Notifiers.Discord
             ProcessedImage processedImage = notification.ProcessedImage;
 
             // Discord seems to require double escaped newlines
-            var message = GetMessage(camera, notification.FoundTypes);
+            //var message = GetMessage(camera, notification.FoundTypes);
+            //var message = GetMessage(camera, notification.FoundTypes, new List<AIPrediction>());
+            string message = GetMessage(camera, notification.FoundTypes, notification.ValidPredictions.ToList());
             message = message.Replace("\n", "\\n");
 
             formData.Add(new StringContent($"{{\"content\":\"{message}\"}}"), "payload_json");
@@ -30,7 +32,10 @@ namespace SynoAI.Notifiers.Discord
             else
             {
                 string error = await responseMessage.Content.ReadAsStringAsync();
-                logger.LogError($"{camera.Name}: Discord: The end point responded with HTTP status code '{responseMessage.StatusCode}' and error '{error}'.");
+                logger.LogError("{cameraName}: Discord: The end point responded with HTTP status code '{responseMessageStatusCode}' and error '{error}'.",
+                    camera.Name,
+                    responseMessage.StatusCode,
+                    error);
             }
         }
     }

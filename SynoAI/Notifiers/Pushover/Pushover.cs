@@ -31,12 +31,12 @@ namespace SynoAI.Notifiers.Pushover
         /// <summary>
         /// How many seconds your notification will continue to be retried for (every retry seconds) (maximum 10800 seconds).
         /// </summary>
-        public int Expire { get; set; }        
+        public int Expire { get; set; }
         /// <summary>
         /// The pushover sound to use.
         /// </summary>
         public string Sound { get; set; }
-        
+
 
         public override async Task SendAsync(Camera camera, Notification notification, ILogger logger)
         {
@@ -52,9 +52,11 @@ namespace SynoAI.Notifiers.Pushover
             }
 
             // Build the form message
-            logger.LogInformation($"{camera.Name}: Pushover: Building message");
+            logger.LogInformation("{cameraName}: Pushover: Building message",
+                camera.Name);
 
-            string message = GetMessage(camera, notification.FoundTypes);
+            //string message = GetMessage(camera, notification.FoundTypes, new List<AIPrediction>());
+            string message = GetMessage(camera, notification.FoundTypes, notification.ValidPredictions.ToList());
             string device = Devices == null || !Devices.Any() ? String.Empty : string.Join(',', Devices);
             string title = $"{camera.Name}: Movement Detected";
 
@@ -72,29 +74,32 @@ namespace SynoAI.Notifiers.Pushover
             };
 
             // Send the message
-            using (FileStream imageStream = notification.ProcessedImage.GetReadonlyStream())
-            using (StreamContent imageContent = new(imageStream))
+            using FileStream imageStream = notification.ProcessedImage.GetReadonlyStream();
+            using StreamContent imageContent = new(imageStream);
+            imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/png");
+            form.Add(imageContent, "attachment", "image.png");
+
+            // Remove content type that is not in the docs
+            foreach (var param in form)
             {
-                imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/png");
-                form.Add(imageContent, "attachment", "image.png");
+                param.Headers.ContentType = null;
+            }
 
-                // Remove content type that is not in the docs
-                foreach (var param in form)
-                {
-                    param.Headers.ContentType = null;
-                }
-
-                logger.LogInformation($"{camera.Name}: Pushover: Sending message");
-                HttpResponseMessage responseMessage = await Shared.HttpClient.PostAsync(URI_MESSAGE, form);
-                if (responseMessage.IsSuccessStatusCode)
-                {
-                    logger.LogInformation($"{camera.Name}: Pushover: Notification sent successfully");
-                }
-                else
-                {
-                    string error = await responseMessage.Content.ReadAsStringAsync();
-                    logger.LogError($"{camera.Name}: Pushover: The end point responded with HTTP status code '{responseMessage.StatusCode}' and error '{error}'.");
-                }
+            logger.LogInformation("{cameraName}: Pushover: Sending message",
+                camera.Name);
+            HttpResponseMessage responseMessage = await Shared.HttpClient.PostAsync(URI_MESSAGE, form);
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                logger.LogInformation("{cameraName}: Pushover: Notification sent successfully",
+                    camera.Name);
+            }
+            else
+            {
+                string error = await responseMessage.Content.ReadAsStringAsync();
+                logger.LogError("{cameraName}: Pushover: The end point responded with HTTP status code '{responseMessageStatusCode}' and error '{error}'.",
+                    camera.Name,
+                    responseMessage.StatusCode,
+                    error);
             }
         }
     }

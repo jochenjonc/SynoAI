@@ -1,14 +1,14 @@
-using System.Dynamic;
 using Newtonsoft.Json;
 using SynoAI.Models;
+using System.Dynamic;
 
 namespace SynoAI.Notifiers
 {
     internal abstract class NotifierBase : INotifier
     {
-        public IEnumerable<string> Cameras { get; set; } 
-        public IEnumerable<string> Types { get; set; } 
-        
+        public IEnumerable<string> Cameras { get; set; }
+        public IEnumerable<string> Types { get; set; }
+
 
         public virtual Task InitializeAsync(ILogger logger) { return Task.CompletedTask; }
 
@@ -16,37 +16,40 @@ namespace SynoAI.Notifiers
 
         public virtual Task CleanupAsync(ILogger logger) { return Task.CompletedTask; }
 
-        protected static string GetMessage(Camera camera, IEnumerable<string> foundTypes, string errorMessage = null)
+        protected static string GetMessage(Camera camera, IEnumerable<string> foundTypes, List<AIPrediction> predictions, string errorMessage = null)
         {
-            string result ;
+            string result;
+
             if (Config.AlternativeLabelling && Config.DrawMode == DrawMode.Matches)
             {
-                // Defaulting into generic label type
-                String typeLabel = "object";
-
-                if (camera.Types.Count() == 1) {
-                    // Only one object type configured: use it instead of generic "object" label
-                    typeLabel = camera.Types.First();
-                }
+                // Defaulting into a generic label type
+                string typeLabel = foundTypes.Count() == 1 ? foundTypes.First() : "objects";
 
                 if (foundTypes.Count() > 1)
                 {
                     // Several objects detected
-                    result = $"{camera.Name}: {foundTypes.Count()} {typeLabel}s\n{String.Join("\n", foundTypes.Select(x => x).ToArray())}";
-                } 
-                else 
+                    result = $"{camera.Name}: {foundTypes.Count()} {typeLabel}s\n{string.Join("\n", foundTypes)}";
+                }
+                else
                 {
                     // Just one object detected
-                    result =  $"{camera.Name}: {foundTypes.First()}";    
-                }      
+                    result = $"{camera.Name}: {foundTypes.First()}";
+                }
             }
-            else 
+            else
             {
-                // Standard (old) labelling
-                result =  $"Motion detected on {camera.Name}\n\nDetected {foundTypes.Count()} objects:\n{String.Join("\n", foundTypes.Select(x => x).ToArray())}";   
+                // Standard (old) labeling
+                result = $"Motion detected on {camera.Name}\n\nDetected {foundTypes.Count()} objects:\n";
             }
 
-            if (!string.IsNullOrWhiteSpace(errorMessage)){
+            // Include prediction confidence for each detected object
+            foreach (var prediction in predictions)
+            {
+                result += $"\n{prediction.Label}: {prediction.Confidence}%";
+            }
+
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
                 result += $"\nAn error occurred during the creation of the notification: {errorMessage}";
             }
 
@@ -60,7 +63,7 @@ namespace SynoAI.Notifiers
                 return null;
             }
 
-            UriBuilder builder = new UriBuilder(Config.SynoAIUrL);
+            UriBuilder builder = new(Config.SynoAIUrL);
             builder.Path += $"{camera.Name}/{notification.ProcessedImage.FileName}";
 
             return builder.Uri.ToString();
@@ -75,8 +78,16 @@ namespace SynoAI.Notifiers
 
             jsonObject.camera = camera.Name;
             jsonObject.foundTypes = notification.FoundTypes;
-            jsonObject.predictions = notification.ValidPredictions;
-            jsonObject.message = GetMessage(camera, notification.FoundTypes);
+
+            List<AIPrediction> validPredictions = notification.ValidPredictions.ToList();
+            jsonObject.predictions = validPredictions.Select(prediction => new
+            {
+                prediction.Confidence,
+                prediction.Label,
+                // Add other properties as needed
+            }).ToList();
+
+            jsonObject.message = GetMessage(camera, notification.FoundTypes, validPredictions);
 
             if (sendImage)
             {
@@ -91,6 +102,7 @@ namespace SynoAI.Notifiers
 
             return JsonConvert.SerializeObject(jsonObject);
         }
+
 
         /// <summary>
         /// Returns FileStream data as a base64-encoded string
